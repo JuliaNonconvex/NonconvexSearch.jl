@@ -78,15 +78,6 @@ end
     optimal_val::Real
 end
 
-if debugging[]
-    function Base.setproperty!(workspace::MTSWorkspace, name::Symbol, x)
-        if name in [:optimal_x, :optimal_ind, :optimal_val]
-            println("New ",  name, ": ", x)
-        end
-        setfield!(workspace, name, x)
-    end
-end
-
 # Workspace constructors
 function MTSWorkspace(model::VecModel, x0::AbstractVector, options::MTSOptions; kwargs...)
     @unpack box_min, box_max = model
@@ -381,9 +372,9 @@ end
 function optimize!(workspace::MTSWorkspace)
     options = workspace.options
     for iter in 1:options.maxiter
-        if debugging[] && iter % 50 == 0
-                println("Iter ", iter, " max iter: ", options.maxiter)
-        end
+        #if debugging[] && iter % 50 == 0
+        #        println("Iter ", iter, " max iter: ", options.maxiter)
+        #end
         mts(workspace)
     end
     MTSResult(workspace.optimal_val, workspace.optimal_x) 
@@ -430,9 +421,9 @@ end
 function optimize!(workspace::LS1Workspace)
     options = workspace.options
     for iter in 1:options.maxiter
-        if debugging[] && iter % 50 == 0
-                println("Iter ", iter, " max iter: ", options.maxiter)
-        end
+        #if debugging[] && iter % 50 == 0
+        #        println("Iter ", iter, " max iter: ", options.maxiter)
+        #end
         localsearch1(workspace)
     end
     MTSResult(workspace.optimal_val, workspace.optimal_x) 
