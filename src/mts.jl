@@ -348,7 +348,6 @@ function mts(workspace::MTSWorkspace)
         LS_testgrades[2] += _localsearch2(workspace, i)
         LS_testgrades[3] += _localsearch3(workspace, i)
         max_ind = findmax(LS_testgrades)[2]
-        local _best_local_search
         if max_ind == 1
             _best_local_search = _localsearch1
         elseif max_ind == 2
