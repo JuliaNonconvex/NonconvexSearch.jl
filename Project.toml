@@ -1,7 +1,7 @@
 name = "NonconvexSearch"
 uuid = "75732972-a7cd-4375-b200-958e0814350d"
 authors = ["Mohamed Tarek <mohamed82008@gmail.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 NonconvexCore = "035190e5-69f1-488f-aaab-becca2889735"
