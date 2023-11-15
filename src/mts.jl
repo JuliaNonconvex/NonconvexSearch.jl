@@ -12,14 +12,14 @@ struct LS1Alg <: AbstractOptimizer end
 # Options
 @with_kw struct MTSOptions
     M = 100
-    maxiter=200
-    search_range_tol=1e-15
+    maxiter = 200
+    search_range_tol = 1e-15
     n_foreground = 80
     n_local_search = 200
     n_local_search_test = 3
     n_local_search_best = 300
     BONUS1 = 10
-    BONUS2 = 1 
+    BONUS2 = 1
     a_min = 0.4
     a_max = 0.5
     b_min = 0.1
@@ -36,8 +36,8 @@ end
 
 @with_kw struct LS1Options
     M = 100
-    maxiter=200
-    search_range_tol=1e-15
+    maxiter = 200
+    search_range_tol = 1e-15
     # Fixed parameters
     REDUCE_SEARCH_RANGE_FACTOR = 2.5
     SEARCH_RANGE_DEGERATE_FACTOR = 2
@@ -84,9 +84,20 @@ function MTSWorkspace(model::VecModel, x0::AbstractVector, options::MTSOptions; 
     M = options.M
     # Initialize improve and serch range
     enable = trues(M)
-    improve =  trues(M)
-    search_range = [(box_max-box_min) ./ 2 for _ in 1:M]
-    MTSWorkspace(model, x0, copy(x0), options, enable, improve, search_range, x0[1], -1, Inf)
+    improve = trues(M)
+    search_range = [(box_max - box_min) ./ 2 for _ = 1:M]
+    MTSWorkspace(
+        model,
+        x0,
+        copy(x0),
+        options,
+        enable,
+        improve,
+        search_range,
+        x0[1],
+        -1,
+        Inf,
+    )
 end
 
 
@@ -95,13 +106,30 @@ function LS1Workspace(model::VecModel, x0::AbstractVector, options::LS1Options; 
     M = options.M
     # Initialize improve and serch range
     enable = trues(M)
-    improve =  trues(M)
-    search_range = [(box_max-box_min) ./ 2 for _ in 1:M]
-    LS1Workspace(model, x0, copy(x0), options, enable, improve, search_range, x0[1], -1, Inf)
+    improve = trues(M)
+    search_range = [(box_max - box_min) ./ 2 for _ = 1:M]
+    LS1Workspace(
+        model,
+        x0,
+        copy(x0),
+        options,
+        enable,
+        improve,
+        search_range,
+        x0[1],
+        -1,
+        Inf,
+    )
 end
 
 # Exposed workspace constructors
-function Workspace(model::VecModel, optimizer::LS1Alg, x0::AbstractVector; options::LS1Options=LS1Options(), kwargs...,)
+function Workspace(
+    model::VecModel,
+    optimizer::LS1Alg,
+    x0::AbstractVector;
+    options::LS1Options = LS1Options(),
+    kwargs...,
+)
     @assert length(x0) > 0 && x0[1] isa AbstractVector
     if length(model.ineq_constraints) > 0 || length(model.eq_constraints) > 0
         @warn "LS1 does not support (in)equality constraints. Your input would be ignored. "
@@ -110,35 +138,48 @@ function Workspace(model::VecModel, optimizer::LS1Alg, x0::AbstractVector; optio
 end
 
 # LS1 Workspace constructor without x0 (use method in paper to initialize)
-function Workspace(model::VecModel, optimizer::LS1Alg; options::LS1Options=LS1Options(), kwargs...)
+function Workspace(
+    model::VecModel,
+    optimizer::LS1Alg;
+    options::LS1Options = LS1Options(),
+    kwargs...,
+)
     x0 = initialize_x(model, options)
-    return Workspace(model, optimizer, x0; options=options)
+    return Workspace(model, optimizer, x0; options = options)
 end
 
 @params struct MTSResult <: AbstractResult
-    minimum
-    minimizer
+    minimum::Any
+    minimizer::Any
 end
 
 # Tool functions
-function initialize_x(model::VecModel, options::Union{MTSOptions, LS1Options})
+function initialize_x(model::VecModel, options::Union{MTSOptions,LS1Options})
     @unpack box_min, box_max = model
     @unpack M = options
     n_vars = getdim(model)[2]
     SOA = build_SOA(M, n_vars, M)
     x0 = Array{Real,2}(undef, M, n_vars)
-    for i in 1:M
-        for j in 1:n_vars
+    for i = 1:M
+        for j = 1:n_vars
             # To be confirmed: At the 5th line of "Multi Trajectory Search" algorithm in paper, I do think (u_i, l_i) shoule be (u_j, l_j)
-            x0[i, j] = box_min[j] + (box_max[j]-box_min[j])*(SOA[i, j]/(M-1))
+            x0[i, j] = box_min[j] + (box_max[j] - box_min[j]) * (SOA[i, j] / (M - 1))
         end
     end
-    [x0[i, :] for i in 1:size(x0, 1)]
+    [x0[i, :] for i = 1:size(x0, 1)]
 end
 
-function reduce_search_range(search_range, k, n_vars, box_min, box_max, search_range_tol, REDUCE_SEARCH_RANGE_FACTOR)
+function reduce_search_range(
+    search_range,
+    k,
+    n_vars,
+    box_min,
+    box_max,
+    search_range_tol,
+    REDUCE_SEARCH_RANGE_FACTOR,
+)
     search_range[k] ./= 2
-    for i in 1:n_vars
+    for i = 1:n_vars
         if search_range[k][i] < search_range_tol
             search_range[k][i] = (box_max[i] - box_min[i]) / REDUCE_SEARCH_RANGE_FACTOR
         end
@@ -148,8 +189,9 @@ end
 function get_buffered_clamp_and_evaluate!()
     buffer = Dict()
     function buffered_clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
-        if !haskey(buffer, (model, x))      
-            buffer[((model, x))] = clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
+        if !haskey(buffer, (model, x))
+            buffer[((model, x))] =
+                clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
         end
         return buffer[((model, x))]
     end
@@ -167,11 +209,19 @@ function _localsearch1(workspace, k)
     grade = 0
     # search_range in paper is one-dimensional. Expand it to multidimensional. 
     if improve[k] == false
-        reduce_search_range(search_range, k, n_vars, box_min, box_max, search_range_tol, REDUCE_SEARCH_RANGE_FACTOR)
+        reduce_search_range(
+            search_range,
+            k,
+            n_vars,
+            box_min,
+            box_max,
+            search_range_tol,
+            REDUCE_SEARCH_RANGE_FACTOR,
+        )
     end
     improve[k] = false
     buffered_clamp_and_evaluate! = get_buffered_clamp_and_evaluate!()
-    for i in 1:n_vars
+    for i = 1:n_vars
         # Original value
         _xk = copy(x[k])
         xk_val = buffered_clamp_and_evaluate!(model, _xk)
@@ -182,7 +232,8 @@ function _localsearch1(workspace, k)
         # Better than current best solution
         if _xk_val < workspace.optimal_val
             grade += BONUS1
-            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                copy(_xk), k, _xk_val
         end
         # Value stays the same
         if _xk_val == xk_val
@@ -198,7 +249,8 @@ function _localsearch1(workspace, k)
                 _xk_val = buffered_clamp_and_evaluate!(model, _xk)
                 if _xk_val < workspace.optimal_val
                     grade += BONUS1
-                    workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+                    workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                        copy(_xk), k, _xk_val
                 end
                 if _xk_val >= xk_val
                     # Restore
@@ -229,13 +281,21 @@ function _localsearch2(workspace, k)
     grade = 0
     # search_range in paper is one-dimensional. Expand it to multidimensional. 
     if improve[k] == false
-        reduce_search_range(search_range, k, n_vars, box_min, box_max, search_range_tol, REDUCE_SEARCH_RANGE_FACTOR)
+        reduce_search_range(
+            search_range,
+            k,
+            n_vars,
+            box_min,
+            box_max,
+            search_range_tol,
+            REDUCE_SEARCH_RANGE_FACTOR,
+        )
     end
     improve[k] = false
     D = zeros(Int, n_vars)
     r = zeros(Int, n_vars)
     buffered_clamp_and_evaluate! = get_buffered_clamp_and_evaluate!()
-    for i in 1:n_vars
+    for i = 1:n_vars
         # Original value
         xk_val = buffered_clamp_and_evaluate!(model, x[k])
         update_xk = true
@@ -243,11 +303,15 @@ function _localsearch2(workspace, k)
         r .= rand.(Ref([0, 1, 2, 3]))
         # Value after update
         _xk = copy(x[k])
-        _xk .= [r[_i] == 0 ? _xk[_i]-search_range[k][i]*D[_i] : _xk[_i] for _i in 1:length(r)]
+        _xk .= [
+            r[_i] == 0 ? _xk[_i] - search_range[k][i] * D[_i] : _xk[_i] for
+            _i = 1:length(r)
+        ]
         _xk_val = buffered_clamp_and_evaluate!(model, _xk)
         if _xk_val < workspace.optimal_val
             grade += BONUS1
-            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                copy(_xk), k, _xk_val
         end
         # Value stays the same
         if _xk_val == xk_val
@@ -258,11 +322,16 @@ function _localsearch2(workspace, k)
             if _xk_val > xk_val
                 # Restore x_k
                 _xk = copy(x[k])
-                _xk .= [r[_i] == 0 ? _xk[_i]+(search_range[k][i]*D[_i] / SEARCH_RANGE_DEGERATE_FACTOR) : _xk[_i] for _i in 1:length(r)]
+                _xk .= [
+                    r[_i] == 0 ?
+                    _xk[_i] + (search_range[k][i] * D[_i] / SEARCH_RANGE_DEGERATE_FACTOR) :
+                    _xk[_i] for _i = 1:length(r)
+                ]
                 _xk_val = buffered_clamp_and_evaluate!(model, _xk)
                 if _xk_val < workspace.optimal_val
                     grade += BONUS1
-                    workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+                    workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                        copy(_xk), k, _xk_val
                 end
                 if _xk_val >= xk_val
                     update_xk = false
@@ -293,37 +362,42 @@ function _localsearch3(workspace, k)
     _xk = copy(x[k])
     update_xk = false
     buffered_clamp_and_evaluate! = get_buffered_clamp_and_evaluate!()
-    for i in 1:n_vars
+    for i = 1:n_vars
         # Original value
         _xk_val = buffered_clamp_and_evaluate!(model, _xk)
         update_xk = true
         # Heuristic search
-        _xk_x1, _xk_y1, _xk_x2  = copy(_xk), copy(_xk), copy(_xk)
+        _xk_x1, _xk_y1, _xk_x2 = copy(_xk), copy(_xk), copy(_xk)
         _xk_x1[i] += Y1_INCR
         _xk_y1[i] -= Y1_DECR
         _xk_x2[i] += X2_INCR
-        _xk_x1_val, _xk_y1_val, _xk_x2_val = buffered_clamp_and_evaluate!(model, _xk_x1), buffered_clamp_and_evaluate!(model, _xk_y1), buffered_clamp_and_evaluate!(model, _xk_x2)
+        _xk_x1_val, _xk_y1_val, _xk_x2_val = buffered_clamp_and_evaluate!(model, _xk_x1),
+        buffered_clamp_and_evaluate!(model, _xk_y1),
+        buffered_clamp_and_evaluate!(model, _xk_x2)
         if _xk_x1_val < workspace.optimal_val
             grade += BONUS1
-            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                copy(_xk), k, _xk_val
         end
         if _xk_y1_val < workspace.optimal_val
             grade += BONUS1
-            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                copy(_xk), k, _xk_val
         end
         if _xk_x2_val < workspace.optimal_val
             grade += BONUS1
-            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk), k, _xk_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
+                copy(_xk), k, _xk_val
         end
         D1, D2, D3 = _xk_val - _xk_x1_val, _xk_val - _xk_y1_val, _xk_val - _xk_x2_val
-        grade += ((D1>0) + (D2>0) + (D3>0)) * BONUS2
+        grade += ((D1 > 0) + (D2 > 0) + (D3 > 0)) * BONUS2
         if update_xk == false
-            update_xk = (D1>0) || (D2>0) || (D3>0)
+            update_xk = (D1 > 0) || (D2 > 0) || (D3 > 0)
         end
         a = (rand() * (a_max - a_min)) + a_min
         b = (rand() * (b_max - b_min)) + b_min
         c = (rand() * (c_max - c_max)) + c_min
-        _xk[i] += a*(D1 - D2) + b*(D3 - 2*D1) + c
+        _xk[i] += a * (D1 - D2) + b * (D3 - 2 * D1) + c
     end
     if update_xk
         # Update x[k]
@@ -337,13 +411,14 @@ const LOCAL_SEARCH_METHODS = [_localsearch1, _localsearch2, _localsearch3]
 function mts(workspace::MTSWorkspace)
     # Multiple Trajectory Search
     @unpack options, enable = workspace
-    @unpack M, n_foreground, n_local_search, n_local_search_test, n_local_search_best = options
-    grade_x = [-Inf for _ in 1:M]
-    for i in 1:M
+    @unpack M, n_foreground, n_local_search, n_local_search_test, n_local_search_best =
+        options
+    grade_x = [-Inf for _ = 1:M]
+    for i = 1:M
         if !enable[i]
             continue
         end
-        LS_testgrades = [0 for _ in 1:length(LOCAL_SEARCH_METHODS)]
+        LS_testgrades = [0 for _ = 1:length(LOCAL_SEARCH_METHODS)]
         LS_testgrades[1] += _localsearch1(workspace, i)
         LS_testgrades[2] += _localsearch2(workspace, i)
         LS_testgrades[3] += _localsearch3(workspace, i)
@@ -356,11 +431,11 @@ function mts(workspace::MTSWorkspace)
             _best_local_search = _localsearch3
         end
         grade_x[i] = 0
-        for _ in 1:n_local_search_best
+        for _ = 1:n_local_search_best
             grade_x[i] += _best_local_search(workspace, i)
         end
     end
-    for _ in 1:n_local_search
+    for _ = 1:n_local_search
         _localsearch1(workspace, workspace.optimal_ind)
     end
     enable_ind = reverse(sortperm(grade_x))[begin:n_foreground]
@@ -370,23 +445,23 @@ end
 
 function optimize!(workspace::MTSWorkspace)
     options = workspace.options
-    for iter in 1:options.maxiter
+    for iter = 1:options.maxiter
         #if debugging[] && iter % 50 == 0
         #        println("Iter ", iter, " max iter: ", options.maxiter)
         #end
         mts(workspace)
     end
-    MTSResult(workspace.optimal_val, workspace.optimal_x) 
+    MTSResult(workspace.optimal_val, workspace.optimal_x)
 end
 
 # Build a SOA (Simulated Orthogonal Array). Refers to section 2 of the paper posted above. 
 function build_SOA(m, k, q)
     SOA = Array{Int,2}(undef, m, k)
-    for c in 1:k
+    for c = 1:k
         q_perm = randperm(q) .- 1
         p = 0
         for r in randperm(m)
-            p = (p%q)+1
+            p = (p % q) + 1
             SOA[r, c] = q_perm[p]
         end
     end
@@ -394,7 +469,13 @@ function build_SOA(m, k, q)
 end
 
 # mts Workspace constructor with x0
-function Workspace(model::VecModel, optimizer::MTSAlg, x0::AbstractVector; options::MTSOptions=MTSOptions(), kwargs...,)
+function Workspace(
+    model::VecModel,
+    optimizer::MTSAlg,
+    x0::AbstractVector;
+    options::MTSOptions = MTSOptions(),
+    kwargs...,
+)
     @assert length(x0) > 0 && x0[1] isa AbstractVector
     if length(model.ineq_constraints) > 0 || length(model.eq_constraints) > 0
         @warn "MTS does not support (in)equality constraints. Your input would be ignored. "
@@ -403,15 +484,20 @@ function Workspace(model::VecModel, optimizer::MTSAlg, x0::AbstractVector; optio
 end
 
 # mts Workspace constructor without x0 (use method in paper to initialize)
-function Workspace(model::VecModel, optimizer::MTSAlg; options::MTSOptions=MTSOptions(), kwargs...)
+function Workspace(
+    model::VecModel,
+    optimizer::MTSAlg;
+    options::MTSOptions = MTSOptions(),
+    kwargs...,
+)
     x0 = initialize_x(model, options)
-    return Workspace(model, optimizer, x0; options=options)
+    return Workspace(model, optimizer, x0; options = options)
 end
 
 # Export localsearch1 independently
-function localsearch1(workspace::Union{MTSWorkspace, LS1Workspace})
+function localsearch1(workspace::Union{MTSWorkspace,LS1Workspace})
     M = workspace.options.M
-    for i in 1:M
+    for i = 1:M
         _localsearch1(workspace, i)
     end
 end
@@ -419,11 +505,11 @@ end
 # Export LS1 independently
 function optimize!(workspace::LS1Workspace)
     options = workspace.options
-    for iter in 1:options.maxiter
+    for iter = 1:options.maxiter
         #if debugging[] && iter % 50 == 0
         #        println("Iter ", iter, " max iter: ", options.maxiter)
         #end
         localsearch1(workspace)
     end
-    MTSResult(workspace.optimal_val, workspace.optimal_x) 
+    MTSResult(workspace.optimal_val, workspace.optimal_x)
 end

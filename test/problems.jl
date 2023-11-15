@@ -32,7 +32,7 @@ upper_bounds(f::UniformBounds, n::Integer) = fill(Float64(lu_bounds(f)[2]), n)
 ####
 
 "A test function with global minimum at [a, …]. For sanity checks."
-struct ShiftedQuadratic{T <: Real} <: UniformBounds
+struct ShiftedQuadratic{T<:Real} <: UniformBounds
     a::T
 end
 
@@ -52,7 +52,7 @@ const SHIFTED_QUADRATIC = ShiftedQuadratic(0.5)
 The Griewank problem.
 From Ali, Khompatraporn, and Zabinsy (2005, p 559).
 """
-struct Griewank{T <: Real} <: UniformBounds
+struct Griewank{T<:Real} <: UniformBounds
     a::T
 end
 
@@ -78,8 +78,9 @@ struct LevyMontalvo2 <: UniformBounds end
 
 function (::LevyMontalvo2)(x)
     xn = last(x)
-    0.1 * abs2(sinpi(3 * first(x))) + abs2(xn -  1) * (1 + abs2(sinpi(2 * xn))) +
-        sum(@. abs2($(x[1:(end - 1)]) - 1) * (1 + abs2(sinpi(3 * $(x[2:end])))))
+    0.1 * abs2(sinpi(3 * first(x))) +
+    abs2(xn - 1) * (1 + abs2(sinpi(2 * xn))) +
+    sum(@. abs2($(x[1:(end-1)]) - 1) * (1 + abs2(sinpi(3 * $(x[2:end])))))
 end
 
 minimum_location(::LevyMontalvo2, n::Integer) = ones(n)
@@ -119,7 +120,7 @@ From Ali, Khompatraporn, and Zabinsy (2005, p 666).
 struct Rosenbrock <: UniformBounds end
 
 function (::Rosenbrock)(x)
-    x1 = x[1:(end - 1)]
+    x1 = x[1:(end-1)]
     x2 = x[2:end]
     sum(@. 100 * abs2(x2 - abs2(x1)) + abs2(x1 - 1))
 end
