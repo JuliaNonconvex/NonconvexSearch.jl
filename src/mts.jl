@@ -189,7 +189,7 @@ function reduce_search_range(
 end
 
 function get_buffered_clamp_and_evaluate!()
-    buffer = Dict{Tuple{AbstractModel,Tuple},Any}()
+    buffer = Dict{Tuple{AbstractModel,Tuple},Real}()
     function buffered_clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
         # Key on an immutable snapshot of x: clamp_and_evaluate! mutates x in
         # place, so using the array itself as a Dict key would corrupt the key.
