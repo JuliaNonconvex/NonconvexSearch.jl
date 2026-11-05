@@ -51,3 +51,44 @@ end
         @test abs(r.minimum) < tol(F)
     end
 end
+
+@testset "LS3 records the improving candidate" begin
+    # Regression test: LS3 used to store the current point and value instead
+    # of the improving probe, corrupting the best-so-far tracking.
+    f = x -> sum((x .- 1.0).^2)
+    m = Model(f)
+    addvar!(m, [-5.0, -5.0], [5.0, 5.0])
+    vm, _, _ = NonconvexCore.tovecmodel(m)
+    w = NonconvexSearch.Workspace(vm, MTSAlg(), [[-3.0, -3.0]]; options = MTSOptions())
+    NonconvexSearch._localsearch3(w, 1)
+    @test isapprox(w.optimal_val, f(w.optimal_x); atol = 1e-10)
+    @test w.optimal_val < f([-3.0, -3.0])
+end
+
+@testset "optimize does not mutate the caller's x0" begin
+    f = x -> sum((x .- 1.0).^2)
+    m = Model(f)
+    addvar!(m, [-5.0, -5.0], [5.0, 5.0])
+    x0 = [[-3.0, -3.0], [-2.0, -2.0], [3.0, 3.0]]
+    x0_snapshot = deepcopy(x0)
+    vm, _, _ = NonconvexCore.tovecmodel(m)
+    w = NonconvexSearch.Workspace(vm, MTSAlg(), x0; options = MTSOptions(
+            M = 3,
+            maxiter = 3,
+            n_foreground = 3,
+            n_local_search = 2,
+            n_local_search_test = 2,
+            n_local_search_best = 2,
+        ))
+    NonconvexCore.optimize!(w)
+    @test x0 == x0_snapshot
+end
+
+@testset "initialize_x with M = 1" begin
+    m = Model(x -> sum(x.^2))
+    addvar!(m, [-5.0, -5.0], [5.0, 5.0])
+    vm, _, _ = NonconvexCore.tovecmodel(m)
+    x0 = NonconvexSearch.initialize_x(vm, MTSOptions(M = 1))
+    @test length(x0) == 1
+    @test all(isfinite, x0[1])
+end

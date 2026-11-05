@@ -89,12 +89,12 @@ function MTSWorkspace(model::VecModel, x0::AbstractVector, options::MTSOptions; 
     MTSWorkspace(
         model,
         x0,
-        copy(x0),
+        deepcopy(x0),
         options,
         enable,
         improve,
         search_range,
-        x0[1],
+        deepcopy(x0[1]),
         -1,
         Inf,
     )
@@ -111,12 +111,12 @@ function LS1Workspace(model::VecModel, x0::AbstractVector, options::LS1Options; 
     LS1Workspace(
         model,
         x0,
-        copy(x0),
+        deepcopy(x0),
         options,
         enable,
         improve,
         search_range,
-        x0[1],
+        deepcopy(x0[1]),
         -1,
         Inf,
     )
@@ -159,11 +159,13 @@ function initialize_x(model::VecModel, options::Union{MTSOptions,LS1Options})
     @unpack M = options
     n_vars = getdim(model)[2]
     SOA = build_SOA(M, n_vars, M)
-    x0 = Array{Real,2}(undef, M, n_vars)
+    T = promote_type(eltype(box_min), eltype(box_max), Float64)
+    x0 = Matrix{T}(undef, M, n_vars)
     for i = 1:M
         for j = 1:n_vars
             # To be confirmed: At the 5th line of "Multi Trajectory Search" algorithm in paper, I do think (u_i, l_i) shoule be (u_j, l_j)
-            x0[i, j] = box_min[j] + (box_max[j] - box_min[j]) * (SOA[i, j] / (M - 1))
+            x0[i, j] =
+                box_min[j] + (box_max[j] - box_min[j]) * (SOA[i, j] / max(M - 1, 1))
         end
     end
     [x0[i, :] for i = 1:size(x0, 1)]
@@ -187,13 +189,15 @@ function reduce_search_range(
 end
 
 function get_buffered_clamp_and_evaluate!()
-    buffer = Dict()
+    buffer = Dict{Tuple{AbstractModel,Tuple},Real}()
     function buffered_clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
-        if !haskey(buffer, (model, x))
-            buffer[((model, x))] =
-                clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
+        # Key on an immutable snapshot of x: clamp_and_evaluate! mutates x in
+        # place, so using the array itself as a Dict key would corrupt the key.
+        key = (model, Tuple(x))
+        if !haskey(buffer, key)
+            buffer[key] = clamp_and_evaluate!(model, x)
         end
-        return buffer[((model, x))]
+        return buffer[key]
     end
     return buffered_clamp_and_evaluate!
 end
@@ -304,7 +308,7 @@ function _localsearch2(workspace, k)
         # Value after update
         _xk = copy(x[k])
         _xk .= [
-            r[_i] == 0 ? _xk[_i] - search_range[k][i] * D[_i] : _xk[_i] for
+            r[_i] == 0 ? _xk[_i] - search_range[k][_i] * D[_i] : _xk[_i] for
             _i = 1:length(r)
         ]
         _xk_val = buffered_clamp_and_evaluate!(model, _xk)
@@ -324,7 +328,7 @@ function _localsearch2(workspace, k)
                 _xk = copy(x[k])
                 _xk .= [
                     r[_i] == 0 ?
-                    _xk[_i] + (search_range[k][i] * D[_i] / SEARCH_RANGE_DEGERATE_FACTOR) :
+                    _xk[_i] + (search_range[k][_i] * D[_i] / SEARCH_RANGE_DEGERATE_FACTOR) :
                     _xk[_i] for _i = 1:length(r)
                 ]
                 _xk_val = buffered_clamp_and_evaluate!(model, _xk)
@@ -365,7 +369,6 @@ function _localsearch3(workspace, k)
     for i = 1:n_vars
         # Original value
         _xk_val = buffered_clamp_and_evaluate!(model, _xk)
-        update_xk = true
         # Heuristic search
         _xk_x1, _xk_y1, _xk_x2 = copy(_xk), copy(_xk), copy(_xk)
         _xk_x1[i] += Y1_INCR
@@ -377,17 +380,17 @@ function _localsearch3(workspace, k)
         if _xk_x1_val < workspace.optimal_val
             grade += BONUS1
             workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
-                copy(_xk), k, _xk_val
+                copy(_xk_x1), k, _xk_x1_val
         end
         if _xk_y1_val < workspace.optimal_val
             grade += BONUS1
             workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
-                copy(_xk), k, _xk_val
+                copy(_xk_y1), k, _xk_y1_val
         end
         if _xk_x2_val < workspace.optimal_val
             grade += BONUS1
             workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val =
-                copy(_xk), k, _xk_val
+                copy(_xk_x2), k, _xk_x2_val
         end
         D1, D2, D3 = _xk_val - _xk_x1_val, _xk_val - _xk_y1_val, _xk_val - _xk_x2_val
         grade += ((D1 > 0) + (D2 > 0) + (D3 > 0)) * BONUS2
@@ -396,7 +399,7 @@ function _localsearch3(workspace, k)
         end
         a = (rand() * (a_max - a_min)) + a_min
         b = (rand() * (b_max - b_min)) + b_min
-        c = (rand() * (c_max - c_max)) + c_min
+        c = (rand() * (c_max - c_min)) + c_min
         _xk[i] += a * (D1 - D2) + b * (D3 - 2 * D1) + c
     end
     if update_xk
