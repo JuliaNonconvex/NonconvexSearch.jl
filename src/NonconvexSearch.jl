@@ -1,6 +1,6 @@
 module NonconvexSearch
 
-export MTS, MTSAlg, LS1Alg, MTSOptions, LS1Options
+export MTSAlg, LS1Alg, MTSOptions, LS1Options
 
 using Reexport, Parameters
 using Random: randperm
