@@ -92,3 +92,69 @@ end
     @test length(x0) == 1
     @test all(isfinite, x0[1])
 end
+
+@testset "Random coordinate descent" begin
+    using NonconvexMMA
+    f(x) = sum((x .- 1.0) .^ 2)
+    m = Model(f)
+    addvar!(m, fill(-5.0, 4), fill(5.0, 4))
+    r = optimize(
+        m,
+        RCDAlg(MMA02()),
+        fill(0.0, 4),
+        options = RCDOptions(maxiter = 20, ncoords = 2, verbose = false),
+    )
+    @test norm(r.minimizer - ones(4)) < 1e-2
+    @test abs(r.minimum) < 1e-3
+
+    # Constrained problem: min sum((x - 1)^2) s.t. x[1] + x[2] <= 1.
+    m2 = Model(f)
+    addvar!(m2, fill(-5.0, 4), fill(5.0, 4))
+    add_ineq_constraint!(m2, x -> x[1] + x[2] - 1.0)
+    r2 = optimize(
+        m2,
+        RCDAlg(MMA02()),
+        fill(0.0, 4),
+        options = RCDOptions(maxiter = 30, ncoords = 2, verbose = false),
+    )
+    @test r2.minimizer[1] + r2.minimizer[2] <= 1.0 + 1e-3
+    @test abs(r2.minimum - 0.5) < 0.05
+end
+
+@testset "Random coordinate descent - fraction and sub_options" begin
+    using NonconvexMMA
+    f(x) = sum((x .- 1.0) .^ 2)
+    m = Model(f)
+    addvar!(m, fill(-5.0, 4), fill(5.0, 4))
+    # The fraction option (ncoords === nothing) and sub_options forwarding.
+    r = optimize(
+        m,
+        RCDAlg(MMA02()),
+        fill(0.0, 4),
+        options = RCDOptions(
+            maxiter = 10,
+            fraction = 0.5,
+            sub_options = MMAOptions(maxiter = 50, verbose = false),
+            verbose = false,
+        ),
+    )
+    @test isfinite(r.minimum)
+    @test norm(r.minimizer - ones(4)) < 1e-2
+end
+
+@testset "Random coordinate descent - equality constraints" begin
+    using NonconvexIpopt
+    f(x) = sum((x .- 1.0) .^ 2)
+    m = Model(f)
+    addvar!(m, fill(-5.0, 4), fill(5.0, 4))
+    add_eq_constraint!(m, x -> x[3] + x[4] - 2.0)
+    r = optimize(
+        m,
+        RCDAlg(IpoptAlg()),
+        fill(0.0, 4),
+        options = RCDOptions(maxiter = 5, ncoords = 3, verbose = false),
+    )
+    # The optimum x = ones(4) satisfies the constraint.
+    @test abs(r.minimizer[3] + r.minimizer[4] - 2.0) < 1e-3
+    @test abs(r.minimum) < 0.2
+end
