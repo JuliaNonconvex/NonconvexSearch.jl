@@ -9,6 +9,18 @@
 struct MTSAlg <: AbstractOptimizer end
 struct LS1Alg <: AbstractOptimizer end
 
+# MTS/LS1 search algorithms support only box-constrained continuous
+# problems; (in)equality constraints are ignored with a warning.
+for A in (:MTSAlg, :LS1Alg)
+    @eval NonconvexCore.solver_capabilities(::$A) = ConstraintCapabilities(
+        eq = false,
+        ineq = false,
+        sd = false,
+        box = true,
+        integer = false,
+    )
+end
+
 # Options
 @with_kw struct MTSOptions
     M = 100

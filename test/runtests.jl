@@ -158,3 +158,17 @@ end
     @test abs(r.minimizer[3] + r.minimizer[4] - 2.0) < 1e-3
     @test abs(r.minimum) < 0.2
 end
+
+@testset "solver capabilities" begin
+    for A in (MTSAlg, LS1Alg)
+        caps = solver_capabilities(A())
+        @test caps isa ConstraintCapabilities
+        @test caps.eq === false
+        @test caps.ineq === false
+        @test caps.sd === false
+        @test caps.box === true
+        @test caps.integer === false
+    end
+    # RCD forwards the sub-solver's capabilities.
+    @test solver_capabilities(RCDAlg(MTSAlg())) == solver_capabilities(MTSAlg())
+end

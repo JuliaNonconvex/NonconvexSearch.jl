@@ -16,6 +16,10 @@ with `sub_alg`, keeping the remaining coordinates fixed. `sub_alg` can be any
     sub_alg::S
 end
 
+# RCD is a meta-algorithm: the sub-problems (with eq/ineq/box/integer
+# features forwarded verbatim) are solved by the sub-solver.
+NonconvexCore.solver_capabilities(alg::RCDAlg) = solver_capabilities(alg.sub_alg)
+
 """
     RCDOptions(; kwargs...)
 
