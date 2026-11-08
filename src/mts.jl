@@ -18,6 +18,7 @@ for A in (:MTSAlg, :LS1Alg)
         sd = false,
         box = true,
         integer = false,
+        infinite_bounds = false,
     )
 end
 

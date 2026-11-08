@@ -168,6 +168,7 @@ end
         @test caps.sd === false
         @test caps.box === true
         @test caps.integer === false
+        @test caps.infinite_bounds === false
     end
     # RCD forwards the sub-solver's capabilities.
     @test solver_capabilities(RCDAlg(MTSAlg())) == solver_capabilities(MTSAlg())
