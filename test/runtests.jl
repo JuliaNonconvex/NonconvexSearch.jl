@@ -25,11 +25,11 @@ test_dim = 2
     for F in setdiff(TEST_FUNCTIONS, (ROSENBROCK,))
         println("Testing nonconvex function: ", F)
         m = Model(x -> F(x))
-        lb = [lu_bounds(F)[1] for _ = 1:test_dim]
-        ub = [lu_bounds(F)[2] for _ = 1:test_dim]
+        lb = [lu_bounds(F)[1] for _ in 1:test_dim]
+        ub = [lu_bounds(F)[2] for _ in 1:test_dim]
         addvar!(m, lb, ub)
         alg = MTSAlg()
-        r = optimize(m, alg, options = MTSOptions())
+        r = optimize(m, alg, options=MTSOptions())
         println(r.minimizer)
         println(r.minimum)
         @test abs(r.minimum) < tol(F)
@@ -41,11 +41,11 @@ end
     for F in setdiff(TEST_FUNCTIONS, (ROSENBROCK,))
         println("Testing nonconvex function: ", F)
         m = Model(x -> F(x))
-        lb = [lu_bounds(F)[1] for _ = 1:test_dim]
-        ub = [lu_bounds(F)[2] for _ = 1:test_dim]
+        lb = [lu_bounds(F)[1] for _ in 1:test_dim]
+        ub = [lu_bounds(F)[2] for _ in 1:test_dim]
         addvar!(m, lb, ub)
         alg = LS1Alg()
-        r = optimize(m, alg, options = LS1Options())
+        r = optimize(m, alg, options=LS1Options())
         println(r.minimizer)
         println(r.minimum)
         @test abs(r.minimum) < tol(F)
@@ -55,40 +55,45 @@ end
 @testset "LS3 records the improving candidate" begin
     # Regression test: LS3 used to store the current point and value instead
     # of the improving probe, corrupting the best-so-far tracking.
-    f = x -> sum((x .- 1.0).^2)
+    f = x -> sum((x .- 1.0) .^ 2)
     m = Model(f)
     addvar!(m, [-5.0, -5.0], [5.0, 5.0])
     vm, _, _ = NonconvexCore.tovecmodel(m)
-    w = NonconvexSearch.Workspace(vm, MTSAlg(), [[-3.0, -3.0]]; options = MTSOptions())
+    w = NonconvexSearch.Workspace(vm, MTSAlg(), [[-3.0, -3.0]]; options=MTSOptions())
     NonconvexSearch._localsearch3(w, 1)
-    @test isapprox(w.optimal_val, f(w.optimal_x); atol = 1e-10)
+    @test isapprox(w.optimal_val, f(w.optimal_x); atol=1e-10)
     @test w.optimal_val < f([-3.0, -3.0])
 end
 
 @testset "optimize does not mutate the caller's x0" begin
-    f = x -> sum((x .- 1.0).^2)
+    f = x -> sum((x .- 1.0) .^ 2)
     m = Model(f)
     addvar!(m, [-5.0, -5.0], [5.0, 5.0])
     x0 = [[-3.0, -3.0], [-2.0, -2.0], [3.0, 3.0]]
     x0_snapshot = deepcopy(x0)
     vm, _, _ = NonconvexCore.tovecmodel(m)
-    w = NonconvexSearch.Workspace(vm, MTSAlg(), x0; options = MTSOptions(
-            M = 3,
-            maxiter = 3,
-            n_foreground = 3,
-            n_local_search = 2,
-            n_local_search_test = 2,
-            n_local_search_best = 2,
-        ))
+    w = NonconvexSearch.Workspace(
+        vm,
+        MTSAlg(),
+        x0;
+        options=MTSOptions(
+            M=3,
+            maxiter=3,
+            n_foreground=3,
+            n_local_search=2,
+            n_local_search_test=2,
+            n_local_search_best=2,
+        ),
+    )
     NonconvexCore.optimize!(w)
     @test x0 == x0_snapshot
 end
 
 @testset "initialize_x with M = 1" begin
-    m = Model(x -> sum(x.^2))
+    m = Model(x -> sum(x .^ 2))
     addvar!(m, [-5.0, -5.0], [5.0, 5.0])
     vm, _, _ = NonconvexCore.tovecmodel(m)
-    x0 = NonconvexSearch.initialize_x(vm, MTSOptions(M = 1))
+    x0 = NonconvexSearch.initialize_x(vm, MTSOptions(M=1))
     @test length(x0) == 1
     @test all(isfinite, x0[1])
 end
@@ -102,7 +107,7 @@ end
         m,
         RCDAlg(MMA02()),
         fill(0.0, 4),
-        options = RCDOptions(maxiter = 20, ncoords = 2, verbose = false),
+        options=RCDOptions(maxiter=20, ncoords=2, verbose=false),
     )
     @test norm(r.minimizer - ones(4)) < 1e-2
     @test abs(r.minimum) < 1e-3
@@ -115,7 +120,7 @@ end
         m2,
         RCDAlg(MMA02()),
         fill(0.0, 4),
-        options = RCDOptions(maxiter = 30, ncoords = 2, verbose = false),
+        options=RCDOptions(maxiter=30, ncoords=2, verbose=false),
     )
     @test r2.minimizer[1] + r2.minimizer[2] <= 1.0 + 1e-3
     @test abs(r2.minimum - 0.5) < 0.05
@@ -131,11 +136,11 @@ end
         m,
         RCDAlg(MMA02()),
         fill(0.0, 4),
-        options = RCDOptions(
-            maxiter = 10,
-            fraction = 0.5,
-            sub_options = MMAOptions(maxiter = 50, verbose = false),
-            verbose = false,
+        options=RCDOptions(
+            maxiter=10,
+            fraction=0.5,
+            sub_options=MMAOptions(maxiter=50, verbose=false),
+            verbose=false,
         ),
     )
     @test isfinite(r.minimum)
@@ -152,9 +157,13 @@ end
         m,
         RCDAlg(IpoptAlg()),
         fill(0.0, 4),
-        options = RCDOptions(maxiter = 5, ncoords = 3, verbose = false),
+        options=RCDOptions(maxiter=5, ncoords=3, verbose=false),
     )
     # The optimum x = ones(4) satisfies the constraint.
     @test abs(r.minimizer[3] + r.minimizer[4] - 2.0) < 1e-3
     @test abs(r.minimum) < 0.2
 end
+
+using Aqua, JET
+Aqua.test_all(NonconvexSearch)
+JET.test_package(NonconvexSearch; target_modules = (NonconvexSearch,))

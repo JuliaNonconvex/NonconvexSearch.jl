@@ -51,17 +51,11 @@ function Workspace(
     model::VecModel,
     optimizer::RCDAlg,
     x0::AbstractVector;
-    options::RCDOptions = RCDOptions(),
+    options::RCDOptions=RCDOptions(),
     kwargs...,
 )
     return RCDWorkspace(
-        model,
-        optimizer.sub_alg,
-        copy(x0),
-        options,
-        copy(x0),
-        model.objective(x0),
-        0,
+        model, optimizer.sub_alg, copy(x0), options, copy(x0), model.objective(x0), 0
     )
 end
 
@@ -87,14 +81,18 @@ function rcd_submodel(model::VecModel, x::AbstractVector, coords::AbstractVector
     end
     substitute(v) = x + E * (v - x[coords])
     obj = Objective(v -> model.objective(substitute(v)))
-    eq_constraints = VectorOfFunctions(map(
-        c -> EqConstraint(v -> c(substitute(v)), 0.0, c.dim, c.flags),
-        model.eq_constraints.fs,
-    ))
-    ineq_constraints = VectorOfFunctions(map(
-        c -> IneqConstraint(v -> c(substitute(v)), 0.0, c.dim, c.flags),
-        model.ineq_constraints.fs,
-    ))
+    eq_constraints = VectorOfFunctions(
+        map(
+            c -> EqConstraint(v -> c(substitute(v)), 0.0, c.dim, c.flags),
+            model.eq_constraints.fs,
+        ),
+    )
+    ineq_constraints = VectorOfFunctions(
+        map(
+            c -> IneqConstraint(v -> c(substitute(v)), 0.0, c.dim, c.flags),
+            model.ineq_constraints.fs,
+        ),
+    )
     return VecModel(
         obj,
         eq_constraints,
@@ -110,7 +108,7 @@ end
 function optimize!(workspace::RCDWorkspace)
     @unpack model, sub_alg, options = workspace
     n = length(workspace.x)
-    for iter = 1:options.maxiter
+    for iter in 1:options.maxiter
         ncoord = if options.ncoords === nothing
             clamp(round(Int, options.fraction * n), 1, n)
         else
@@ -121,7 +119,7 @@ function optimize!(workspace::RCDWorkspace)
         sub_result = if options.sub_options === nothing
             optimize(sub_model, sub_alg, workspace.x[coords])
         else
-            optimize(sub_model, sub_alg, workspace.x[coords]; options = options.sub_options)
+            optimize(sub_model, sub_alg, workspace.x[coords]; options=options.sub_options)
         end
         workspace.x[coords] .= sub_result.minimizer
         workspace.f = model.objective(workspace.x)
