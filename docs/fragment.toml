@@ -1,0 +1,11 @@
+name = "Search"
+modules = ["NonconvexSearch"]
+doctest_setup = "using NonconvexSearch"
+
+[[pages]]
+title = "Search"
+file = "index.md"
+
+[[pages]]
+title = "Docstrings"
+file = "docstrings.md"
