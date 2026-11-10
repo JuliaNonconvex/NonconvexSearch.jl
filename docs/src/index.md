@@ -1,5 +1,7 @@
 # Multi-trajectory search and random coordinate descent in pure Julia
 
+![JuliaNonconvex logo](https://raw.githubusercontent.com/JuliaNonconvex/NonconvexSearch.jl/master/docs/src/assets/logo.png)
+
 ## Description
 
 Multiple trajectory search (MTS) is a derivative-free heuristic optimization method presented by [Lin-Yu Tseng and Chun Chen, 2008](https://sci2s.ugr.es/sites/default/files/files/TematicWebSites/EAMHCO/contributionsCEC08/tseng08mts.pdf). 
