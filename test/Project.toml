@@ -1,0 +1,9 @@
+[deps]
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+NonconvexSearch = "75732972-a7cd-4375-b200-958e0814350d"
+
+[compat]
+JET = "0.9, 0.10, 0.11, 0.12, 0.13"
+JSON = "1"
+julia = "1.10"
