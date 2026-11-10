@@ -1,4 +1,6 @@
-using Aqua, NonconvexSearch
+@testitem "Aqua" begin
+    using Aqua, NonconvexSearch
 
-# All Aqua quality gates are enabled. No tests are skipped.
-Aqua.test_all(NonconvexSearch)
+    # All Aqua quality gates are enabled. No tests are skipped.
+    Aqua.test_all(NonconvexSearch)
+end

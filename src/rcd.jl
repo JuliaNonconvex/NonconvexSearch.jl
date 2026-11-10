@@ -58,8 +58,10 @@ function Workspace(
     options::RCDOptions=RCDOptions(),
     kwargs...,
 )
+    objective = NonconvexCore.getobjective(model)
+    objective === nothing && throw(ArgumentError("The model has no objective."))
     return RCDWorkspace(
-        model, optimizer.sub_alg, copy(x0), options, copy(x0), model.objective(x0), 0
+        model, optimizer.sub_alg, copy(x0), options, copy(x0), objective(x0), 0
     )
 end
 
@@ -126,7 +128,9 @@ function optimize!(workspace::RCDWorkspace)
             optimize(sub_model, sub_alg, workspace.x[coords]; options=options.sub_options)
         end
         workspace.x[coords] .= sub_result.minimizer
-        workspace.f = model.objective(workspace.x)
+        objective = NonconvexCore.getobjective(model)
+        objective === nothing && throw(ArgumentError("The model has no objective."))
+        workspace.f = objective(workspace.x)
         workspace.iter = iter
         options.verbose && @info "RCD iteration $iter: objective = $(workspace.f)"
     end
