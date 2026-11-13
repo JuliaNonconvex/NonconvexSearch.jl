@@ -99,11 +99,14 @@ function rcd_submodel(model::VecModel, x::AbstractVector, coords::AbstractVector
             model.ineq_constraints.fs,
         ),
     )
+    sd_constraints = VectorOfFunctions(
+        map(c -> SDConstraint(v -> c(substitute(v)), c.dim), model.sd_constraints.fs)
+    )
     return VecModel(
         obj,
         eq_constraints,
         ineq_constraints,
-        VectorOfFunctions(SDConstraint[]),
+        sd_constraints,
         model.box_min[coords],
         model.box_max[coords],
         x[coords],
@@ -134,5 +137,5 @@ function optimize!(workspace::RCDWorkspace)
         workspace.iter = iter
         options.verbose && @info "RCD iteration $iter: objective = $(workspace.f)"
     end
-    return RCDResult(workspace.f, workspace.x)
+    return RCDResult(workspace.f, copy(workspace.x))
 end

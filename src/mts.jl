@@ -430,6 +430,14 @@ function _localsearch3(workspace, k)
         _xk[i] += a * (D1 - D2) + b * (D3 - 2 * D1) + c
     end
     if update_xk
+        # Evaluate the accepted iterate (this also clamps it to the box) and
+        # update the tracked optimum so it is not missed.
+        _xk_val = buffered_clamp_and_evaluate!(model, _xk)
+        if _xk_val < workspace.optimal_val
+            workspace.optimal_x, workspace.optimal_ind, workspace.optimal_val = copy(_xk),
+            k,
+            _xk_val
+        end
         # Update x[k]
         x[k] = _xk
     end
@@ -465,10 +473,17 @@ function mts(workspace::MTSWorkspace)
             grade_x[i] += _best_local_search(workspace, i)
         end
     end
-    for _ in 1:n_local_search
-        _localsearch1(workspace, workspace.optimal_ind)
+    # `optimal_ind` stays at its unset value (-1) when no improvement was ever
+    # recorded (e.g. an all-NaN objective keeps `optimal_val = Inf`). Guard the
+    # polishing pass so it does not index `x[-1]`.
+    if workspace.optimal_ind >= firstindex(workspace.x)
+        for _ in 1:n_local_search
+            _localsearch1(workspace, workspace.optimal_ind)
+        end
     end
-    enable_ind = reverse(sortperm(grade_x))[begin:n_foreground]
+    # `n_foreground` can exceed the number of graded (enabled) trajectories,
+    # e.g. after trajectories were disabled in a previous iteration; clamp it.
+    enable_ind = reverse(sortperm(grade_x))[begin:min(n_foreground, count(enable))]
     enable[:] .= false
     return enable[enable_ind] .= true
 end
@@ -481,7 +496,7 @@ function optimize!(workspace::MTSWorkspace)
         #end
         mts(workspace)
     end
-    return MTSResult(workspace.optimal_val, workspace.optimal_x)
+    return MTSResult(workspace.optimal_val, copy(workspace.optimal_x))
 end
 
 # Build a SOA (Simulated Orthogonal Array). Refers to section 2 of the paper posted above. 
@@ -538,5 +553,5 @@ function optimize!(workspace::LS1Workspace)
         #end
         localsearch1(workspace)
     end
-    return MTSResult(workspace.optimal_val, workspace.optimal_x)
+    return MTSResult(workspace.optimal_val, copy(workspace.optimal_x))
 end
