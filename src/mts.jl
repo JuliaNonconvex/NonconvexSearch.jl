@@ -6,7 +6,24 @@
 # MTS Implementation
 
 # Algs
+"""
+    MTSAlg()
+
+The [Multiple Trajectory Search](https://sci2s.ugr.es/sites/default/files/files/TematicWebSites/EAMHCO/contributionsCEC08/tseng08mts.pdf)
+gradient-free global optimization algorithm (Tseng and Chen, 2008),
+implemented in pure Julia. Supports only box-constrained continuous
+problems with finite bounds; equality and inequality constraints are
+unsupported. Options are set through [`MTSOptions`](@ref).
+"""
 struct MTSAlg <: AbstractOptimizer end
+"""
+    LS1Alg()
+
+A pure-Julia local search algorithm using a single trajectory (LS1).
+Supports only box-constrained continuous problems with finite bounds;
+equality and inequality constraints are unsupported. Options are set through
+[`LS1Options`](@ref).
+"""
 struct LS1Alg <: AbstractOptimizer end
 
 # MTS/LS1 search algorithms support only box-constrained continuous
@@ -28,6 +45,24 @@ for A in (:MTSAlg, :LS1Alg)
 end
 
 # Options
+"""
+    MTSOptions(; kwargs...)
+
+Options for [`MTSAlg`](@ref). The main tunable fields are:
+
+- `M`: the number of trajectories,
+- `maxiter`: the maximum number of outer iterations,
+- `search_range_tol`: the search range tolerance used as a stopping criterion,
+- `n_foreground`: the number of trajectories in the foreground set,
+- `n_local_search`, `n_local_search_test`, `n_local_search_best`: iteration
+  budgets of the local search phases,
+- `BONUS1`, `BONUS2`: bonus values used when updating the best solution,
+- `a_min`, `a_max`, `b_min`, `b_max`, `c_min`, `c_max`: parameter ranges for
+  the randomized search directions.
+
+The remaining fields are fixed parameters of the algorithm and should not
+normally be changed.
+"""
 @with_kw struct MTSOptions
     M = 100
     maxiter = 200
@@ -52,6 +87,19 @@ end
     X2_INCR = 0.2
 end
 
+"""
+    LS1Options(; kwargs...)
+
+Options for [`LS1Alg`](@ref). The main tunable fields are:
+
+- `M`: the number of initial solutions,
+- `maxiter`: the maximum number of outer iterations,
+- `search_range_tol`: the search range tolerance used as a stopping criterion,
+- `BONUS1`, `BONUS2`: bonus values used when updating the best solution.
+
+The remaining fields are fixed parameters of the algorithm and should not
+normally be changed.
+"""
 @with_kw struct LS1Options
     M = 100
     maxiter = 200
