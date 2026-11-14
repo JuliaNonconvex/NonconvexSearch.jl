@@ -1,5 +1,12 @@
 # NEWS
 
+## Unreleased
+
+- Fixed a memoization buffer in the MTS/LS1 local searches that could raise a
+  spurious `KeyError` during optimization (flaky CI failures on Julia 1.13+).
+  The buffer now uses a single `get!` lookup and keys on the evaluation point
+  only.
+
 ## 0.2.0
 
 - Added `RCDAlg` and `RCDOptions`: a random coordinate descent

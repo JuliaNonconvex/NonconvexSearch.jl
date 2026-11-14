@@ -189,3 +189,31 @@ end
     # RCD forwards the sub-solver's capabilities.
     @test solver_capabilities(RCDAlg(MTSAlg())) == solver_capabilities(MTSAlg())
 end
+
+@testitem "clamp-and-evaluate memoization buffer" begin
+    using NonconvexSearch, NonconvexCore, Random, Test
+
+    # Regression test: the MTS/LS1 local searches memoize clamp+evaluate
+    # results in a Dict. Repeated and out-of-bounds points must always return
+    # consistent values; a previous implementation used a haskey/getindex pair
+    # that could disagree and raise a spurious KeyError.
+    f = x -> sum(abs2, x .- 1.0)
+    m = Model(f)
+    addvar!(m, [-2.0, -2.0], [2.0, 2.0])
+    vm, _, _ = NonconvexCore.tovecmodel(m)
+    eval! = NonconvexSearch.get_buffered_clamp_and_evaluate!()
+    rng = MersenneTwister(42)
+    for _ in 1:1000
+        x = 5.0 .* (rand(rng, 2) .- 0.5) # some values out of bounds
+        y = copy(x)
+        v1 = eval!(vm, x)
+        # clamp_and_evaluate! clamps x in place
+        @test all(-2.0 .<= x .<= 2.0)
+        @test v1 == f(x)
+        # the same (now clamped) point evaluates to the same value
+        @test eval!(vm, x) == v1
+        # a fresh copy of the original out-of-bounds point evaluates to the
+        # same value as well
+        @test eval!(vm, y) == v1
+    end
+end
