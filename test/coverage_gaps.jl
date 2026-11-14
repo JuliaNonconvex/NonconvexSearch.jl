@@ -8,7 +8,9 @@
     addvar!(m, [-5.0, -5.0], [5.0, 5.0])
     add_ineq_constraint!(m, x -> x[1] + x[2] - 1.0)
     vm = NonconvexCore.tovecmodel(m)[1]
-    w = NonconvexSearch.Workspace(vm, LS1Alg(), [[2.0, 2.0]]; options=LS1Options(maxiter=100))
+    w = NonconvexSearch.Workspace(
+        vm, LS1Alg(), [[2.0, 2.0]]; options=LS1Options(maxiter=100)
+    )
     @test w isa NonconvexSearch.LS1Workspace
 
     # A regular MTS solve traverses the improvement branch when a candidate
