@@ -158,7 +158,11 @@ end
         RCDAlg(IpoptAlg()),
         fill(0.0, 4),
         options=RCDOptions(
-            maxiter=5,
+            # Enough iterations for the random coordinate subsets to very
+            # likely cover both constrained coordinates (x[3] and x[4]) in
+            # the same subproblem; with too few iterations the minimum can
+            # get stuck above the tolerance (flaky CI failures).
+            maxiter=40,
             ncoords=3,
             verbose=false,
             # Pass the sub-solver's default options explicitly.
