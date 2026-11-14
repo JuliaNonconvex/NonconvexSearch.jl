@@ -1,5 +1,17 @@
 # NEWS
 
+## 0.2.3
+
+- Fixed the RCD semidefinite-constraint drop and MTS edge cases; covered
+  the LS1 constraint warning and the MTS improvement branch; scheduled
+  formatter workflow.
+
+## 0.2.1
+
+- Fixed the docs layout (RCD is a section, not a second page title);
+  NonconvexCore 2 with strict solver capability declarations
+  (`infinite_bounds`); DocumenterFragments docs; TestItems/JET/Aqua.
+
 ## 0.2.0
 
 - Added `RCDAlg` and `RCDOptions`: a random coordinate descent
