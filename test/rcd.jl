@@ -45,3 +45,27 @@ end
     r1.minimizer .= 42.0
     @test r2.minimizer == snapshot
 end
+
+@testitem "RCD reset! restarts from the new x0" begin
+    using NonconvexSearch, NonconvexMMA, NonconvexCore, Test
+
+    f(x) = sum(x .^ 2)
+    m = Model(f)
+    addvar!(m, fill(-5.0, 2), fill(5.0, 2))
+    vm, _, _ = NonconvexCore.tovecmodel(m)
+    w = NonconvexSearch.Workspace(
+        vm,
+        RCDAlg(MMA02()),
+        [2.0, 2.0];
+        options=RCDOptions(maxiter=0, verbose=false),
+    )
+    # With maxiter = 0 the result is the objective at the workspace point.
+    r1 = NonconvexCore.optimize!(w)
+    @test r1.minimum ≈ 8.0 atol = 1e-12
+    NonconvexCore.reset!(w, [1.0, 1.0])
+    r2 = NonconvexCore.optimize!(w)
+    # Regression test: the generic reset! only updates the x0 field, while
+    # RCD solves from `workspace.x` (the previous endpoint), so nested
+    # meta-algorithms silently ignored the new start before this override.
+    @test r2.minimum ≈ 2.0 atol = 1e-12
+end
