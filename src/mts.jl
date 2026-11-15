@@ -196,15 +196,18 @@ function reduce_search_range(
 end
 
 function get_buffered_clamp_and_evaluate!()
-    buffer = Dict{Tuple{AbstractModel,Tuple},Real}()
+    buffer = Dict{Tuple,Real}()
     function buffered_clamp_and_evaluate!(model::AbstractModel, x::AbstractVector)
         # Key on an immutable snapshot of x: clamp_and_evaluate! mutates x in
         # place, so using the array itself as a Dict key would corrupt the key.
-        key = (model, Tuple(x))
-        if !haskey(buffer, key)
-            buffer[key] = clamp_and_evaluate!(model, x)
+        # The buffer only ever sees a single model (it is created once per
+        # local-search pass), so the model does not need to be part of the key.
+        # `get!` performs a single table lookup: unlike a haskey/getindex pair,
+        # it can never disagree with itself, which could otherwise raise a
+        # spurious KeyError if a key's hash were unstable.
+        return get!(buffer, Tuple(x)) do
+            return clamp_and_evaluate!(model, x)
         end
-        return buffer[key]
     end
     return buffered_clamp_and_evaluate!
 end
