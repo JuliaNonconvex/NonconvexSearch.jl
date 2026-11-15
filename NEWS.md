@@ -1,5 +1,10 @@
 # NEWS
 
+## 0.2.4
+
+- Added docstrings for `MTSAlg`, `LS1Alg` and their options (REPL help and API reference).
+
+
 ## Unreleased
 
 - Fixed a memoization buffer in the MTS/LS1 local searches that could raise a
