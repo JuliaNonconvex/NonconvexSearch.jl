@@ -9,7 +9,7 @@ using NonconvexCore: @params, AbstractOptimizer, AbstractResult
 using NonconvexCore: AbstractModel, VecModel, debugging, getdim
 using NonconvexCore: clamp_and_evaluate!, Objective, VectorOfFunctions, SDConstraint
 using NonconvexCore: IneqConstraint, EqConstraint
-import NonconvexCore: optimize!, Workspace
+import NonconvexCore: optimize!, Workspace, reset!
 
 include("mts.jl")
 include("rcd.jl")

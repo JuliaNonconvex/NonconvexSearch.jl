@@ -166,6 +166,26 @@ function MTSWorkspace(model::VecModel, x0::AbstractVector, options::MTSOptions; 
     )
 end
 
+# The generic `reset!(w, x0)` only updates the `x0` field, but MTS solves
+# from `workspace.x` (the previous run's endpoint) and its volatile state
+# (`optimal_*`, `enable`, `improve`, `search_range`), so nesting MTS inside
+# meta-algorithms (e.g. HyperoptAlg) used to silently ignore the new start.
+function reset!(workspace::MTSWorkspace, x0=nothing)
+    x0 === nothing || (workspace.x0 .= x0)
+    @unpack box_min, box_max = workspace.model
+    M = workspace.options.M
+    workspace.x .= workspace.x0
+    workspace.enable .= true
+    workspace.improve .= true
+    for i in 1:M
+        workspace.search_range[i] = (box_max - box_min) ./ 2
+    end
+    workspace.optimal_x .= workspace.x0[1]
+    workspace.optimal_ind = -1
+    workspace.optimal_val = Inf
+    return workspace
+end
+
 function LS1Workspace(model::VecModel, x0::AbstractVector, options::LS1Options; kwargs...)
     @unpack box_min, box_max = model
     M = options.M
@@ -187,6 +207,24 @@ function LS1Workspace(model::VecModel, x0::AbstractVector, options::LS1Options; 
     )
 end
 
+# Same rationale as MTS: the search must restart from `x0`, not the
+# previous run's endpoint.
+function reset!(workspace::LS1Workspace, x0=nothing)
+    x0 === nothing || (workspace.x0 .= x0)
+    @unpack box_min, box_max = workspace.model
+    M = workspace.options.M
+    workspace.x .= workspace.x0
+    workspace.enable .= true
+    workspace.improve .= true
+    for i in 1:M
+        workspace.search_range[i] = (box_max - box_min) ./ 2
+    end
+    workspace.optimal_x .= workspace.x0[1]
+    workspace.optimal_ind = -1
+    workspace.optimal_val = Inf
+    return workspace
+end
+
 # Exposed workspace constructors
 function Workspace(
     model::VecModel,
@@ -195,7 +233,7 @@ function Workspace(
     options::LS1Options=LS1Options(),
     kwargs...,
 )
-    @assert length(x0) > 0 && x0[1] isa AbstractVector
+    @assert length(x0) > 0 && x0[1] isa AbstractVector "x0 must be a non-empty vector of trajectory vectors (one initial point per trajectory)."
     if length(model.ineq_constraints) > 0 || length(model.eq_constraints) > 0
         @warn "LS1 does not support (in)equality constraints. Your input would be ignored. "
     end
@@ -225,7 +263,8 @@ function initialize_x(model::VecModel, options::Union{MTSOptions,LS1Options})
     x0 = Matrix{T}(undef, M, n_vars)
     for i in 1:M
         for j in 1:n_vars
-            # To be confirmed: At the 5th line of "Multi Trajectory Search" algorithm in paper, I do think (u_i, l_i) shoule be (u_j, l_j)
+            # The SOA initialization distributes the trajectories between
+            # the box bounds of coordinate j (u_j, l_j).
             x0[i, j] = box_min[j] + (box_max[j] - box_min[j]) * (SOA[i, j] / max(M - 1, 1))
         end
     end
@@ -298,8 +337,10 @@ function _localsearch1(workspace, k)
             k,
             _xk_val
         end
-        # Value stays the same
-        if _xk_val == xk_val
+        # Value stays the same, or is non-finite (NaN/Inf objectives must
+        # not be treated as improvements and must not corrupt the
+        # trajectory)
+        if _xk_val == xk_val || !isfinite(_xk_val)
             # Restore 
             update_xki = false
         else
@@ -380,8 +421,10 @@ function _localsearch2(workspace, k)
             k,
             _xk_val
         end
-        # Value stays the same
-        if _xk_val == xk_val
+        # Value stays the same, or is non-finite (NaN/Inf objectives must
+        # not be treated as improvements and must not corrupt the
+        # trajectory)
+        if _xk_val == xk_val || !isfinite(_xk_val)
             # Restore 
             update_xk = false
         else
@@ -572,7 +615,7 @@ function Workspace(
     options::MTSOptions=MTSOptions(),
     kwargs...,
 )
-    @assert length(x0) > 0 && x0[1] isa AbstractVector
+    @assert length(x0) > 0 && x0[1] isa AbstractVector "x0 must be a non-empty vector of trajectory vectors (one initial point per trajectory)."
     if length(model.ineq_constraints) > 0 || length(model.eq_constraints) > 0
         @warn "MTS does not support (in)equality constraints. Your input would be ignored. "
     end

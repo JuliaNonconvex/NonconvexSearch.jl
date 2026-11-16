@@ -38,7 +38,7 @@ Options of the random coordinate descent meta-algorithm. The fields are:
     fraction::Float64 = 0.5
     ncoords::Union{Nothing,Int} = nothing
     sub_options = nothing
-    verbose::Bool = true
+    verbose::Bool = false
 end
 
 @params mutable struct RCDWorkspace <: Workspace
@@ -138,4 +138,17 @@ function optimize!(workspace::RCDWorkspace)
         options.verbose && @info "RCD iteration $iter: objective = $(workspace.f)"
     end
     return RCDResult(workspace.f, copy(workspace.x))
+end
+
+# The generic `reset!(w, x0)` only updates the `x0` field, but RCD solves
+# from `workspace.x` (the previous run's endpoint), so nesting RCD inside
+# meta-algorithms (e.g. HyperoptAlg) used to silently ignore the new start.
+function reset!(workspace::RCDWorkspace, x0=nothing)
+    x0 === nothing || (workspace.x0 .= x0)
+    workspace.x .= workspace.x0
+    objective = NonconvexCore.getobjective(workspace.model)
+    objective === nothing && throw(ArgumentError("The model has no objective."))
+    workspace.f = objective(workspace.x)
+    workspace.iter = 0
+    return workspace
 end
