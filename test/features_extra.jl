@@ -126,7 +126,7 @@ end
         @test o.fraction == 0.5
         @test o.ncoords === nothing
         @test o.sub_options === nothing
-        @test o.verbose === true
+        @test o.verbose === false # verbose is off by default
         o2 = RCDOptions(maxiter=5, fraction=0.25, ncoords=2, verbose=false)
         @test o2.maxiter == 5
         @test o2.fraction == 0.25

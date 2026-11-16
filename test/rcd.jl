@@ -54,10 +54,7 @@ end
     addvar!(m, fill(-5.0, 2), fill(5.0, 2))
     vm, _, _ = NonconvexCore.tovecmodel(m)
     w = NonconvexSearch.Workspace(
-        vm,
-        RCDAlg(MMA02()),
-        [2.0, 2.0];
-        options=RCDOptions(maxiter=0, verbose=false),
+        vm, RCDAlg(MMA02()), [2.0, 2.0]; options=RCDOptions(maxiter=0, verbose=false)
     )
     # With maxiter = 0 the result is the objective at the workspace point.
     r1 = NonconvexCore.optimize!(w)
