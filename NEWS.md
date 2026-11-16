@@ -1,5 +1,14 @@
 # NEWS
 
+## 0.2.5
+
+- `reset!` for the RCD, MTS and LS1 workspaces now restarts the search
+  from the new `x0` (nesting inside meta-algorithms like `HyperoptAlg` used
+  to silently continue from the previous endpoint).
+- Non-finite objective values are no longer treated as improvements and no
+  longer corrupt the MTS trajectories.
+- RCD `verbose` now defaults to `false`.
+
 ## 0.2.4
 
 - Added docstrings for `MTSAlg`, `LS1Alg` and their options (REPL help and API reference).
