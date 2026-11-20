@@ -3,8 +3,20 @@ modules = ["NonconvexSearch"]
 doctest_setup = "using NonconvexSearch"
 
 [[pages]]
-title = "Search"
+title = "Introduction"
 file = "index.md"
+
+[[pages]]
+title = "MTS"
+file = "mts.md"
+
+[[pages]]
+title = "Local search 1"
+file = "ls1.md"
+
+[[pages]]
+title = "Random coordinate descent"
+file = "rcd.md"
 
 [[pages]]
 title = "Docstrings"
