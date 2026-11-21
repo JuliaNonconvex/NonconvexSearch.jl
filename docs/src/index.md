@@ -1,4 +1,4 @@
-# Multi-trajectory search and random coordinate descent in pure Julia
+# NonconvexSearch
 
 ![JuliaNonconvex logo](https://raw.githubusercontent.com/JuliaNonconvex/NonconvexSearch.jl/master/docs/src/assets/logo.png)
 
