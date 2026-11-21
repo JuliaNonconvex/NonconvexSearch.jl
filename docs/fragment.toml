@@ -1,4 +1,4 @@
-name = "Search"
+name = "NonconvexSearch"
 modules = ["NonconvexSearch"]
 doctest_setup = "using NonconvexSearch"
 

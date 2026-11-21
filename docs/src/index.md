@@ -1,4 +1,4 @@
-# Multi-trajectory search and random coordinate descent in pure Julia
+# NonconvexSearch
 
 ```@raw html
 <p align="center">
