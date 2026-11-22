@@ -1,7 +1,5 @@
 # NonconvexSearch
 
-![JuliaNonconvex logo](https://raw.githubusercontent.com/JuliaNonconvex/NonconvexSearch.jl/master/docs/src/assets/logo.png)
-
 
 
 ## Description
